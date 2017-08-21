@@ -11,6 +11,8 @@ def oqatt_core():
     env.project = 'oqatt_core'
     #  hg repository of your project
     env.repository = 'https://DILIPSKUMAR1410@bitbucket.org/DILIPSKUMAR1410/oqatt_core.git'
+    #git_user_email
+    env.git_user_email = "DILIPSKUMAR1410@gmail.com"
     #branch name
     env.branch = 'master'
     #  type of repository (git or hg)
