@@ -77,7 +77,7 @@ def oqatt_core():
     env.nginx_htdocs = '%(django_user_home)s/htdocs' % env
     # will configure nginx with ssl on, your certificate must be installed
     # more info here: http://wiki.nginx.org/HttpSslModule
-    env.nginx_https = True
+    env.nginx_https = False
     ### END nginx settings ###
 
     ### START supervisor settings ###

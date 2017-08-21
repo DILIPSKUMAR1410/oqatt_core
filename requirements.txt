@@ -11,3 +11,4 @@ django-s3direct
 django_facebook
 sendgrid
 google-api-python-client
+neomodel
