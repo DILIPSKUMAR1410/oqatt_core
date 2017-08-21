@@ -10,13 +10,13 @@ def oqatt_core():
     #  name of your project - no spaces, no special chars
     env.project = 'oqatt_core'
     #  hg repository of your project
-    env.repository = 'https://gitlab.com/deviab/lytyfy_rest.git'
+    env.repository = 'https://DILIPSKUMAR1410@bitbucket.org/DILIPSKUMAR1410/oqatt_core.git'
     #branch name
-    env.branch = 'hotfix/supporters'
+    env.branch = 'master'
     #  type of repository (git or hg)
     env.repository_type = 'git'
     #  hosts to deploy your project, users must be sudoers
-    env.hosts = ['ubuntu@54.254.195.114', ]
+    env.hosts = ['ubuntu@54.255.223.128', ]
     # additional packages to be installed on the server
     env.additional_packages = [
         "libmysqlclient-dev",
@@ -71,7 +71,7 @@ def oqatt_core():
     ### END gunicorn settings ###
 
     ### START nginx settings ###
-    env.nginx_server_name = 'api.lytyfy.org'  # Only domain name, without 'www' or 'http://'
+    env.nginx_server_name = 'api.oqatt.com'  # Only domain name, without 'www' or 'http://'
     env.nginx_conf_file = '%(django_user_home)s/configs/nginx/%(project)s.conf' % env
     env.nginx_client_max_body_size = 10  # Maximum accepted body size of client request, in MB
     env.nginx_htdocs = '%(django_user_home)s/htdocs' % env
