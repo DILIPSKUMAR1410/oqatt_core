@@ -28,8 +28,10 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 from neomodel import config
-config.DATABASE_URL = 'bolt://neo4j:divane47@52.221.214.115:7687'  # default
 
+config.DATABASE_URL = 'bolt://neo4j:divane_47@54.254.162.193:7687'  # default
+# before loading your node definitions
+config.AUTO_INSTALL_LABELS = True
 # Application definition
 
 INSTALLED_APPS = [
@@ -124,3 +126,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.9/howto/static-files/
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
+
+
+NEOMODEL_CYPHER_DEBUG = 1

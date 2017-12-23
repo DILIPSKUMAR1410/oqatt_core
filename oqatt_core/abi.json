@@ -1,0 +1,76 @@
+[
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "pollHash",
+        "type": "string"
+      },
+      {
+        "name": "option",
+        "type": "uint256"
+      }
+    ],
+    "name": "voteForPoll",
+    "outputs": [
+      
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "pollHash",
+        "type": "string"
+      }
+    ],
+    "name": "totalVotesFor",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "pollHash",
+        "type": "string"
+      },
+      {
+        "name": "_numOptions",
+        "type": "uint256"
+      },
+      {
+        "name": "voterList",
+        "type": "bytes32[]"
+      }
+    ],
+    "name": "publishPoll",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bytes32[]"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  }
+]

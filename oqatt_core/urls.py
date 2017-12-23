@@ -19,6 +19,9 @@ from oqatt_core import views
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
+    url(r'^api/user/test$', views.TestApi.as_view()),
     url(r'^api/user/create$', views.CreateUser.as_view()),
     url(r'^api/user/sync_contacts$', views.SyncUserContacts.as_view()),
+    url(r'^api/user/(?P<me_id>.+)/poll/publish$', views.PublishPoll.as_view()),
+    url(r'^api/user/(?P<me_id>.+)/poll/vote$', views.Vote.as_view()),
 ]
