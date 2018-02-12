@@ -14,7 +14,7 @@ from firebase_admin import credentials
 from firebase_admin import firestore
 from os import path
 # from solc import compile_source
-cred = credentials.Certificate('/Users/dk/Desktop/oqatt-diva-firebase-adminsdk-smc26-4fbe6b846a.json')
+cred = credentials.Certificate('/Users/dk/oqatt_core/oqatt-diva-firebase-adminsdk-smc26-4fbe6b846a.json')
 # Use the application default credentials
 firebase_admin.initialize_app(cred, {
   'projectId': 'oqatt-diva',
