@@ -5,29 +5,7 @@ from web3 import Web3, HTTPProvider, TestRPCProvider
 from solc import compile_source
 from web3.contract import ConciseContract
 
-from pyfcm import FCMNotification
 
-push_service = FCMNotification(api_key="AAAACWy09ic:APA91bEuSlYGS7gCO639eZ9qoucmpWQoMuYwqWE1s0K0Of-v4PYPO07uokIHZ9nmyr9Itimnhm5Z2sGONgAHOF1nhyboJD3vzl0F05_TV5BOQjSllL1PXT6Gng-ZIZmJtBjiOQuvCBIt")
-
-
-# Your api-key can be gotten from:  https://console.firebase.google.com/project/<project-name>/settings/cloudmessaging
-
-# registration_id = "<device registration_id>"
-# message_title = "Uber update"
-# message_body = "Hi john, your customized news for today is ready"
-# result = push_service.notify_single_device(registration_id=registration_id, message_title=message_title, message_body=message_body)
-
-# Send to multiple devices by passing a list of ids.
-
-def push_poll(message_title,registration_ids,message_body=None,data_message=None):
-	push_service.multiple_devices_data_message(registration_ids=registration_ids,data_message=data_message)
-	result = push_service.notify_multiple_devices(registration_ids=registration_ids, message_title=message_title, message_body="Checkout the update")
-	return result
-
-def upvote_push(message_title,registration_id,message_body=None,data_message=None):
-	push_service.notify_single_device(registration_id=registration_id,data_message=None)
-	result = push_service.single_device_data_message(registration_id=registration_id,data_message=data_message)
-	return result
 
 def deploy_contract():
 

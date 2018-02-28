@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from oqatt_core.models import User
-from oqatt_core.functions import upvote_push,push_poll
+from oqatt_core.tasks import upvote_push,push_poll,updateObjectbox,send_new_user_notification
 import json
 import logging
 from neomodel.match import INCOMING,Traversal
@@ -50,6 +50,7 @@ class SyncUserContacts(APIView):
 	def post(self, request, format=None):
 		params = request.data
 		contact_list = params.pop('contact_list',None)
+		trigger = params.pop('trigger',None)
 		user_id = params.get('uid',None)
 		if user_id:
 			try:
@@ -58,7 +59,6 @@ class SyncUserContacts(APIView):
 				return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
 		else:
 			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
-		
 		
 		query = "MATCH (b:User {contact:{my_contact}}) UNWIND {contact_list} as params"\
 				+" MATCH (n:User {contact: params})"\
@@ -75,21 +75,25 @@ class SyncUserContacts(APIView):
 		# 		+" MATCH (p:User)-[:Knows]->(b)-[:Knows]->(p)"\
 		# 		+" MERGE (p)-[:Maintains]->(q:Bucket{name:bucket})-[:Belongs]->(b)-[:Maintains]->(r:Bucket{name:bucket})-[:Belongs]->(p)"\
 		# 		+" return distinct p.contact"
-				
+		
+		# data_message = {"type" : 2}
+		# push_poll('Your friends',fcm_ids,data_message=data_message)	
+		
 		values = {}
 		values['my_contact'] = user.contact
 		values['contact_list'] = contact_list
-		# values['bucket_types'] = ["Personality","Attitude","Skill","Maturity","Manners"]
 		
 		response = []
 		results = db.cypher_query(query, values)[0]
 		
 		for result in results:
-			print(result)
 			response.append(result[0])
 
+		if trigger:
+			updateObjectbox.delay(user.contact,contact_list[0])
+		else:
+			send_new_user_notification.delay(user.contact,contact_list)
 		if len(response):
-			print(response)
 			return Response({'Users':response}, status=status.HTTP_200_OK)
 		else:
 			return Response({'msg':"No contacts in the oqatt"}, status=status.HTTP_200_OK)
