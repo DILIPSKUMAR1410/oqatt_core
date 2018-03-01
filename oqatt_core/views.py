@@ -35,7 +35,9 @@ class CreateUser(APIView):
 		params = request.data
 		contact = params.get('contact',None)
 		if contact:
-			user = User.get_or_create({'contact':contact})[0]
+			user = User.nodes.get_or_none(contact=contact)
+			if user is None:
+				user = User(contact=contact).save()
 			user.fcm_id = params.get("fcm_id",None)
 			user.save()
 		else:
@@ -88,12 +90,12 @@ class SyncUserContacts(APIView):
 		
 		for result in results:
 			response.append(result[0])
-
-		if trigger:
-			updateObjectbox.delay(user.contact,contact_list[0])
-		else:
-			send_new_user_notification.delay(user.contact,contact_list)
+		
 		if len(response):
+			if trigger == 1:
+				updateObjectbox.delay(user.contact,contact_list[0])
+			elif trigger == 0:
+				send_new_user_notification.delay(user.contact,contact_list)
 			return Response({'Users':response}, status=status.HTTP_200_OK)
 		else:
 			return Response({'msg':"No contacts in the oqatt"}, status=status.HTTP_200_OK)
