@@ -37,7 +37,7 @@ class CreateUser(APIView):
 		if contact:
 			user = User.nodes.get_or_none(contact=contact)
 			if user is None:
-				user = User(contact=contact).save()
+				user = User(contact=contact)
 			user.fcm_id = params.get("fcm_id",None)
 			user.save()
 		else:
