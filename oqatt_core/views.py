@@ -61,7 +61,17 @@ class SyncUserContacts(APIView):
 				return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
 		else:
 			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
-		
+
+		clean_contact_list = []
+		for contact in contact_list:
+			if contact is None or contact == user.contact:
+				continue
+			if not contact.startswith("+91"):
+				contact = "+91" + contact[-10:]
+				clean_contact_list.append(contact)
+			else:
+				clean_contact_list.append(contact)
+	
 		query = "MATCH (b:User {contact:{my_contact}}) UNWIND {contact_list} as params"\
 				+" MATCH (n:User {contact: params})"\
 				+" MERGE (b)-[k:Knows]->(n)"\
@@ -81,10 +91,11 @@ class SyncUserContacts(APIView):
 		# data_message = {"type" : 2}
 		# push_poll('Your friends',fcm_ids,data_message=data_message)	
 		
+	
+
 		values = {}
 		values['my_contact'] = user.contact
-		values['contact_list'] = contact_list
-		
+		values['contact_list'] = clean_contact_list
 		response = []
 		results = db.cypher_query(query, values)[0]
 		
@@ -105,7 +116,6 @@ class PublishPoll(APIView):
 
 	def post(self, request,me_id, format=None):
 		params = request.data
-		print(params)
 		question = params.pop('question',None)
 		sub_contact = params.pop('sub_contact',None)
 		options = params.pop('options',None)
@@ -149,6 +159,7 @@ class PublishPoll(APIView):
  		   "question" : question,
     	   "options" : options,
     	   "poll_hash":poll_hash,
+    	   "sub_contact": sub_contact,
     	   "type" : 0
     	   }
 		push_poll('New Question Added',fcm_ids,data_message=data_message)
