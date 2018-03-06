@@ -22,7 +22,8 @@ def oqatt_core():
     # additional packages to be installed on the server
     env.additional_packages = [
         "libmysqlclient-dev",
-        "git"
+        "git",
+        "python3-pip"
     ]
     #  system user, owner of the processes and code on your server
     #  the user and it's home dir will be created if not present
