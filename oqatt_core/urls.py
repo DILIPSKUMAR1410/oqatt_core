@@ -24,4 +24,5 @@ urlpatterns = [
     url(r'^api/user/sync_contacts$', views.SyncUserContacts.as_view()),
     url(r'^api/user/(?P<me_id>.+)/poll/publish$', views.PublishPoll.as_view()),
     url(r'^api/user/(?P<me_id>.+)/poll/vote$', views.Vote.as_view()),
+    url(r'^api/user/(?P<me_id>.+)/token/balance$', views.GetTokenBalance.as_view())
 ]

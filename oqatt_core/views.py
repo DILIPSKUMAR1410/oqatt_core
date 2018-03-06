@@ -22,6 +22,10 @@ firebase_admin.initialize_app(cred, {
 
 firestoredb = firestore.client()
 
+FREE_TOKENS = 15
+TOKENS_PER_QUESTION = 3
+TOKENS_PER_ANSWER = 1
+
 class TestApi(APIView):
 
 	def get(self, request, format=None):
@@ -39,12 +43,13 @@ class CreateUser(APIView):
 			if user is None:
 				user = User(contact=contact)
 			user.fcm_id = params.get("fcm_id",None)
+			user.token_bal = FREE_TOKENS
 			user.save()
 		else:
 			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
 		user.refresh() # reload properties from neo
 		# neo4j internal id
-		return Response({'User':user.uid}, status=status.HTTP_200_OK)
+		return Response({'User':user.uid,'token_bal':user.token_bal}, status=status.HTTP_200_OK)
 
 
 class SyncUserContacts(APIView):
@@ -55,10 +60,9 @@ class SyncUserContacts(APIView):
 		trigger = params.pop('trigger',None)
 		user_id = params.get('uid',None)
 		if user_id:
-			try:
-				user = User.nodes.get(uid=user_id)
-			except User.DoesNotExist:
-				return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
+			user = User.nodes.get_or_none(uid=user_id)
+			if user is None:
+				return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)				
 		else:
 			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -71,7 +75,7 @@ class SyncUserContacts(APIView):
 				clean_contact_list.append(contact)
 			else:
 				clean_contact_list.append(contact)
-	
+		
 		query = "MATCH (b:User {contact:{my_contact}}) UNWIND {contact_list} as params"\
 				+" MATCH (n:User {contact: params})"\
 				+" MERGE (b)-[k:Knows]->(n)"\
@@ -120,10 +124,15 @@ class PublishPoll(APIView):
 		sub_contact = params.pop('sub_contact',None)
 		options = params.pop('options',None)
 		poll_hash = params.pop('poll_hash',None)
-		try:
-			user = User.nodes.get(uid=me_id)
-		except User.DoesNotExist:
-			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
+		user = User.nodes.get_or_none(uid=me_id)
+		
+		if not question or not sub_contact or not options or not poll_hash:
+			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
+		if user is None:
+			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)		
+
+		if user.token_bal < TOKENS_PER_QUESTION:
+			return Response({'Msg':'Not enough tokens'}, status=status.HTTP_200_OK)
 		query = "MATCH (p:User {contact:{sub_contact}})-[:Knows]->(b)-[:Knows]->(p)"\
 				"return b"
 				# "MATCH (p:User)-[:Knows]->(b)-[:Knows]->(p)"\
@@ -162,8 +171,10 @@ class PublishPoll(APIView):
     	   "sub_contact": sub_contact,
     	   "type" : 0
     	   }
-		push_poll('New Question Added',fcm_ids,data_message=data_message)
-		return Response({'Msg':'Succesfully published'}, status=status.HTTP_200_OK)
+		user.token_bal -= TOKENS_PER_QUESTION
+		user.save()
+		push_poll('New question asked to you',fcm_ids,data_message=data_message)
+		return Response({'Msg':'Succesfully published','token_bal':user.token_bal}, status=status.HTTP_200_OK)
 
 
 class Vote(APIView):
@@ -172,9 +183,8 @@ class Vote(APIView):
 		params = request.data
 		poll_hash = params.pop('poll_hash',None)
 		chosen_option = params.pop('chosen_option',None)
-		try:
-			user = User.nodes.get(uid=me_id)
-		except User.DoesNotExist:
+		user = User.nodes.get_or_none(uid=me_id)
+		if user is None:
 			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
 
 		poll_ref = firestoredb.collection(u'polls').document(poll_hash)
@@ -183,23 +193,28 @@ class Vote(APIView):
 		poll['options'][chosen_option] = poll['options'][chosen_option] + 1
 		poll_ref.update({u'options': poll['options']})
 		owner = poll['owner']
-		try:
-			owner_obj = User.nodes.get(uid=owner)
-		except User.DoesNotExist:
-			return Response({'msg':"owner DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
+		
+		owner_obj = User.nodes.get_or_none(uid=owner)
+		if owner_obj is None:
+			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
 		
 		data_message = {
     	   "option_count" : poll['options'],
     	   "poll_hash": poll_hash,
        	   "type" : 1
     	   }
-		upvote_push('Checkout Someone upvoting',owner_obj.fcm_id,data_message=data_message)
 
-		return Response({'Msg':'Succesfully voted'}, status=status.HTTP_200_OK)
-
-
-		
-
+		user.token_bal += TOKENS_PER_ANSWER
+		user.save()
+		upvote_push('Checkout someone anwsered your question',owner_obj.fcm_id,data_message=data_message)
+		return Response({'Msg':'Succesfully voted','token_bal':user.token_bal}, status=status.HTTP_200_OK)
 
 
+class GetTokenBalance(APIView):
+
+	def get(self, request,me_id,format=None):
+		user = User.nodes.get_or_none(uid=me_id)
+		if user is None:
+			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
+		return Response({'token_bal':user.token_bal}, status=status.HTTP_200_OK)
 

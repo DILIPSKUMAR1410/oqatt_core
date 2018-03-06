@@ -7,6 +7,7 @@ from datetime import datetime
 class User(StructuredNode):
     uid = UniqueIdProperty()
     fcm_id = StringProperty()
+    token_bal = IntegerProperty()
     name = StringProperty()
     contact = StringProperty(unique_index=True)
     email = EmailProperty()
