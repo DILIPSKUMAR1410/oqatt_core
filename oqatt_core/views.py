@@ -7,8 +7,6 @@ import json
 import logging
 from neomodel.match import INCOMING,Traversal
 from neomodel import db
-from web3 import Web3, HTTPProvider, TestRPCProvider
-from web3.contract import ConciseContract
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
