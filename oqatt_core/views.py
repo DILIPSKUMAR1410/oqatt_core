@@ -72,7 +72,7 @@ class SyncUserContacts(APIView):
 
 		clean_contact_list = []
 		for contact in contact_list:
-			if contact is None or contact == user.contact:
+			if contact is None or contact == user.contact or len(contact) < 10 :
 				continue
 			if not contact.startswith("+91"):
 				contact = "+91" + contact[-10:]
