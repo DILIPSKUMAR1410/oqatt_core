@@ -115,9 +115,9 @@ class SyncUserContacts(APIView):
 		
 		if len(response):
 			if trigger == 1:
-				updateObjectbox.delay(user.contact,contact_list[0])
+				updateObjectbox.delay(user.contact,clean_contact_list[0])
 			elif trigger == 0:
-				send_new_user_notification.delay(user.contact,contact_list)
+				send_new_user_notification.delay(user.contact,clean_contact_list)
 			return Response({'Users':response}, status=status.HTTP_200_OK)
 		else:
 			return Response({'msg':"No contacts in the oqatt"}, status=status.HTTP_200_OK)
