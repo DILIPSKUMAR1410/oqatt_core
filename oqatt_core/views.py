@@ -11,9 +11,6 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
 from os import path
-# from solc import compile_source
-
-cred = credentials.Certificate('/Users/dk/oqatt_core/oqatt-diva-firebase-adminsdk-smc26-4fbe6b846a.json')
 from django.conf import settings
 
 if settings.DEBUG:
