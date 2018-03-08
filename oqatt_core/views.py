@@ -46,8 +46,8 @@ class CreateUser(APIView):
 			user = User.nodes.get_or_none(contact=contact)
 			if user is None:
 				user = User(contact=contact)
+				user.token_bal = FREE_TOKENS
 			user.fcm_id = params.get("fcm_id",None)
-			user.token_bal = FREE_TOKENS
 			user.save()
 		else:
 			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
@@ -174,6 +174,66 @@ class PublishPoll(APIView):
     	   "poll_hash":poll_hash,
     	   "sub_contact": sub_contact,
     	   "type" : 0
+    	   }
+		user.token_bal -= TOKENS_PER_QUESTION
+		user.save()
+		push_poll('New question asked to you',fcm_ids,data_message=data_message)
+		return Response({'Msg':'Succesfully published','token_bal':user.token_bal}, status=status.HTTP_200_OK)
+
+class PublishGroupPoll(APIView):
+
+	def post(self, request,me_id, format=None):
+		params = request.data
+		question = params.pop('question',None)
+		selected_friends = params.pop('selected_friends',None)
+		options = params.pop('options',None)
+		poll_hash = params.pop('poll_hash',None)
+		user = User.nodes.get_or_none(uid=me_id)
+		
+		if not question or not selected_friends or not options or not poll_hash:
+			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
+		if user is None:
+			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)		
+
+		if user.token_bal < TOKENS_PER_QUESTION:
+			return Response({'Msg':'Not enough tokens'}, status=status.HTTP_200_OK)
+		
+		query = "UNWIND {selected_friends} as params"\
+				+" MATCH (n:User {contact: params})"\
+				+"return n"
+				# "MATCH (p:User)-[:Knows]->(b)-[:Knows]->(p)"\
+		values = {}
+		values['selected_friends'] = selected_friends
+		results = db.cypher_query(query, values)[0]
+
+		fcm_ids = []
+		voter_ids = []
+		for result in results:
+			voter = User.inflate(result[0])
+			fcm_ids.append(voter.fcm_id)
+			voter_ids.append(voter.uid)
+		# w3 = Web3(HTTPProvider('https://ropsten.infura.io/NmmMBPY5aEKKG6hr6CDs'))
+		# w3.eth.defaultAccount =  "0x1d36e88A8078F92317aEFf29e691B4aA8eaB7D6f"
+		# dir_path = path.dirname(path.realpath(__file__))
+		# with open(str(path.join(dir_path, 'abi.json')), 'r') as abi_definition:
+		# 	abi = json.load(abi_definition)
+		# 	contract = w3.eth.contract(abi,"0xa79be6332a9b8bcce43701c22d159288227af7271bac202e2f6dd7d4143648c4")
+		# 	response = contract.buildTransaction({'gasPrice': 21000000000}).publishPoll(poll_hash,len(options),voter_ids)
+		# 	print(response)
+		# Use the application default credentials
+		
+
+		doc_ref = firestoredb.collection(u'polls').document(poll_hash)
+		doc_ref.set({
+		    u'voters': voter_ids,
+		    u'options': [0,0,0,0],
+		    u'owner': me_id
+		})
+		data_message = {
+ 		   "question" : question,
+    	   "options" : options,
+    	   "poll_hash":poll_hash,
+    	   "type" : 4
     	   }
 		user.token_bal -= TOKENS_PER_QUESTION
 		user.save()
