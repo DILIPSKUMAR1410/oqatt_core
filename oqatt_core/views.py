@@ -44,16 +44,18 @@ class CreateUser(APIView):
 		contact = params.get('contact',None)
 		if contact:
 			user = User.nodes.get_or_none(contact=contact)
+			is_new_user = False
 			if user is None:
 				user = User(contact=contact)
 				user.token_bal = FREE_TOKENS
+				is_new_user = True
 			user.fcm_id = params.get("fcm_id",None)
 			user.save()
 		else:
 			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
 		user.refresh() # reload properties from neo
 		# neo4j internal id
-		return Response({'User':user.uid,'token_bal':user.token_bal}, status=status.HTTP_200_OK)
+		return Response({'User':user.uid,'token_bal':user.token_bal,'is_new_user':is_new_user}, status=status.HTTP_200_OK)
 
 
 class SyncUserContacts(APIView):
