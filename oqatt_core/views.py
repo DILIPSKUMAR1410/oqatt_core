@@ -284,3 +284,22 @@ class GetTokenBalance(APIView):
 			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
 		return Response({'token_bal':user.token_bal}, status=status.HTTP_200_OK)
 
+
+class UpdateFCMId(APIView):
+
+	def post(self, request,me_id,format=None):
+		params = request.data
+		fcm_id = params.get('fcm_id',None)
+		if fcm_id:
+			user = User.nodes.get_or_none(uid=me_id)
+			if user is None:
+				return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
+			user.fcm_id = fcm_id
+			user.save()
+			user.refresh() # reload properties from neo
+			# neo4j internal id
+			return Response({'msg':'FCM id succesfully updated'}, status=status.HTTP_200_OK)
+		else:
+			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
+
+

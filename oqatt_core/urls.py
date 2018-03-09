@@ -25,5 +25,7 @@ urlpatterns = [
     url(r'^api/user/(?P<me_id>.+)/poll/publish$', views.PublishPoll.as_view()),
     url(r'^api/user/(?P<me_id>.+)/poll/publish/open$', views.PublishGroupPoll.as_view()),
     url(r'^api/user/(?P<me_id>.+)/poll/vote$', views.Vote.as_view()),
-    url(r'^api/user/(?P<me_id>.+)/token/balance$', views.GetTokenBalance.as_view())
+    url(r'^api/user/(?P<me_id>.+)/token/balance$', views.GetTokenBalance.as_view()),
+    url(r'^api/user/(?P<me_id>.+)/update/profile/fcm_id$', views.UpdateFCMId.as_view())
+
 ]
