@@ -128,41 +128,65 @@ class PublishPoll(APIView):
 		params = request.data
 		question = params.pop('question',None)
 		sub_contact = params.pop('sub_contact',None)
+		selected_friends = params.pop('selected_friends',None)
 		options = params.pop('options',None)
 		poll_hash = params.pop('poll_hash',None)
 		user = User.nodes.get_or_none(uid=me_id)
-		
-		if not question or not sub_contact or not options or not poll_hash:
+		if not question or not sub_contact or not options or not poll_hash or not selected_friends:
 			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
 		if user is None:
 			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)		
 
 		if user.token_bal < TOKENS_PER_QUESTION:
 			return Response({'Msg':'Not enough tokens'}, status=status.HTTP_200_OK)
-		query = "MATCH (p:User {contact:{sub_contact}})-[:Knows]->(b)-[:Knows]->(p)"\
-				"return b"
-				# "MATCH (p:User)-[:Knows]->(b)-[:Knows]->(p)"\
+		
 		values = {}
-		values['sub_contact'] = sub_contact
-		results = db.cypher_query(query, values)[0]
-
+		result = results2 = results3 = final_results = None
 		fcm_ids = []
 		voter_ids = []
-		for result in results:
-			voter = User.inflate(result[0])
-			fcm_ids.append(voter.fcm_id)
-			voter_ids.append(voter.uid)
-		fcm_ids.remove(user.fcm_id)
-		# w3 = Web3(HTTPProvider('https://ropsten.infura.io/NmmMBPY5aEKKG6hr6CDs'))
-		# w3.eth.defaultAccount =  "0x1d36e88A8078F92317aEFf29e691B4aA8eaB7D6f"
-		# dir_path = path.dirname(path.realpath(__file__))
-		# with open(str(path.join(dir_path, 'abi.json')), 'r') as abi_definition:
-		# 	abi = json.load(abi_definition)
-		# 	contract = w3.eth.contract(abi,"0xa79be6332a9b8bcce43701c22d159288227af7271bac202e2f6dd7d4143648c4")
-		# 	response = contract.buildTransaction({'gasPrice': 21000000000}).publishPoll(poll_hash,len(options),voter_ids)
-		# 	print(response)
-		# Use the application default credentials
-		
+		if "others" in selected_friends:
+			selected_friends.remove("others")
+			query1 = "MATCH (p:User {contact:{sub_contact}})<-[:Knows]->(all)"\
+				"return distinct all"
+			query2 = "MATCH (me:User {contact:{my_contact}})<-[:Knows]->(mutual)<-[:Knows]->"\
+				+"(sub:User {contact:{sub_contact}})<-[:Knows]->(me)"\
+				+"return  distinct mutual"
+			values['sub_contact'] = sub_contact
+			values['my_contact'] = user.contact
+			result1 = db.cypher_query(query1, values)[0]
+				
+			for result in result1:
+				voter = User.inflate(result[0])
+				if voter.contact == user.contact:pass
+				fcm_ids.append(voter.fcm_id)
+				voter_ids.append(voter.uid) 
+			
+			results2 = db.cypher_query(query2, values)[0]
+			
+			for result in results2:
+				voter = User.inflate(result[0])
+				if voter.contact == user.contact:pass
+				if voter.fcm_id in fcm_ids:fcm_ids.remove(voter.fcm_id)
+				if voter.uid in voter_ids:voter_ids.remove(voter.uid)
+
+		if selected_friends:
+			query3 = "UNWIND {selected_friends} as params"\
+				+" MATCH (n:User {contact: params})"\
+				+"return distinct n"
+			values['selected_friends'] = selected_friends
+			results3 = db.cypher_query(query3, values)[0]
+
+			for result in results3:
+				voter = User.inflate(result[0])
+				if voter.contact == user.contact:pass
+				fcm_ids.append(voter.fcm_id)
+				voter_ids.append(voter.uid)
+
+		if user.fcm_id in fcm_ids:
+			fcm_ids.remove(user.fcm_id)	
+
+		if user.uid in voter_ids:
+			voter_ids.remove(user.uid)	
 
 		doc_ref = firestoredb.collection(u'polls').document(poll_hash)
 		doc_ref.set({
@@ -199,7 +223,7 @@ class PublishGroupPoll(APIView):
 
 		if user.token_bal < TOKENS_PER_QUESTION:
 			return Response({'Msg':'Not enough tokens'}, status=status.HTTP_200_OK)
-		
+			
 		query = "UNWIND {selected_friends} as params"\
 				+" MATCH (n:User {contact: params})"\
 				+"return n"
@@ -301,5 +325,40 @@ class UpdateFCMId(APIView):
 			return Response({'msg':'FCM id succesfully updated'}, status=status.HTTP_200_OK)
 		else:
 			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetFriendsConnections(APIView):
+
+	def post(self, request,me_id, format=None):
+		params = request.data
+		sub_contact = params.pop('sub_contact',None)
+		user = User.nodes.get_or_none(uid=me_id)
+		
+		if user is None or not sub_contact:
+			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)		
+
+
+		query1 = "MATCH (me:User {contact:{my_contact}})<-[:Knows]->(mutual)<-[:Knows]->"\
+				+"(sub:User {contact:{sub_contact}})<-[:Knows]->(me)"\
+				+"return distinct mutual"
+
+		query2 = "MATCH (me:User {contact:{sub_contact}})<-[:Knows]->(all)"\
+				+"return distinct all"
+		
+		values = {}
+		values['sub_contact'] = sub_contact
+		values['my_contact'] = user.contact
+		results1 = db.cypher_query(query1, values)[0]
+		results2 = db.cypher_query(query2, values)[0]
+
+		mutual = []
+		unknown = []
+		for result in results1:
+			mutual.append(User.inflate(result[0]).contact)
+		for result in results2:
+			contact = User.inflate(result[0]).contact
+			if contact not in mutual and contact != user.contact:
+				unknown.append(User.inflate(result[0]).contact)
+		return Response({'mutual':mutual,'unknown':len(unknown)}, status=status.HTTP_200_OK)
 
 
