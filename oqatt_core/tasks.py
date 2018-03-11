@@ -68,27 +68,19 @@ def updateObjectbox(my_contact,friends_contact):
 # @task(name="push_poll")
 def push_poll(message_title,registration_ids,message_body=None,data_message=None):
 	push_service.multiple_devices_data_message(registration_ids=registration_ids,data_message=data_message)
-	result = push_service.notify_multiple_devices(registration_ids=registration_ids, message_title=message_title, message_body="Checkout the update")
-	return result
+	push_service.notify_multiple_devices(registration_ids=registration_ids, message_title=message_title, message_body=message_body,sound = "Default")
 
 # @task(name="upvote_push")
 def upvote_push(message_title,registration_id,message_body=None,data_message=None):
-	push_service.notify_single_device(registration_id=registration_id,data_message=None)
-	result = push_service.single_device_data_message(registration_id=registration_id,data_message=data_message)
-	return result
+	push_service.single_device_data_message(registration_id=registration_id,data_message=data_message)
+	push_service.notify_single_device(registration_id=registration_id,message_title=message_title, message_body=message_body,sound = "Default")
 
 # @task(name="sync_connections")
 def sync_connections(message_title,registration_ids,message_body=None,data_message=None):
-	print(message_title)
 	push_service.multiple_devices_data_message(registration_ids=registration_ids,data_message=data_message)
-	result = push_service.notify_multiple_devices(registration_ids=registration_ids, message_title=message_title, message_body="Your friend is using oqatt now!")
-	print(result)
-	return result
+	push_service.notify_multiple_devices(registration_ids=registration_ids, message_title=message_title, message_body=message_body,sound = "Default")
 
 # @task(name="update_objectbox")
 def update_objectbox(message_title,registration_id,message_body=None,data_message=None):
-	print(message_title)
-	push_service.notify_single_device(registration_id=registration_id,data_message=None)
-	result = push_service.single_device_data_message(registration_id=registration_id,data_message=data_message)
-	print(result)
-	return result
+	push_service.single_device_data_message(registration_id=registration_id,data_message=data_message)
+	push_service.notify_single_device(registration_id=registration_id,message_title=message_title, message_body=message_body,sound = "Default")

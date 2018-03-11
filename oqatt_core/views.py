@@ -296,7 +296,7 @@ class Vote(APIView):
 
 		user.token_bal += TOKENS_PER_ANSWER
 		user.save()
-		upvote_push('Checkout someone anwsered your question',owner_obj.fcm_id,data_message=data_message)
+		upvote_push('Checkout ! Someone anwsered your question',owner_obj.fcm_id,data_message=data_message)
 		return Response({'Msg':'Succesfully voted','token_bal':user.token_bal}, status=status.HTTP_200_OK)
 
 
