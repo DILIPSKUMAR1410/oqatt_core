@@ -203,7 +203,7 @@ class PublishPoll(APIView):
     	   }
 		user.token_bal -= TOKENS_PER_QUESTION
 		user.save()
-		push_poll('New question asked to you',fcm_ids,data_message=data_message)
+		push_poll.delay('New question asked to you',fcm_ids,data_message=data_message)
 		return Response({'Msg':'Succesfully published','token_bal':user.token_bal}, status=status.HTTP_200_OK)
 
 class PublishGroupPoll(APIView):
@@ -263,7 +263,7 @@ class PublishGroupPoll(APIView):
     	   }
 		user.token_bal -= TOKENS_PER_QUESTION
 		user.save()
-		push_poll('New question asked to you',fcm_ids,data_message=data_message)
+		push_poll.delay('New question asked to you',fcm_ids,data_message=data_message)
 		return Response({'Msg':'Succesfully published','token_bal':user.token_bal}, status=status.HTTP_200_OK)
 
 
@@ -296,7 +296,7 @@ class Vote(APIView):
 
 		user.token_bal += TOKENS_PER_ANSWER
 		user.save()
-		upvote_push('Checkout ! Someone anwsered your question',owner_obj.fcm_id,data_message=data_message)
+		upvote_push.delay('Checkout ! Someone anwsered your question',owner_obj.fcm_id,data_message=data_message)
 		return Response({'Msg':'Succesfully voted','token_bal':user.token_bal}, status=status.HTTP_200_OK)
 
 
@@ -311,7 +311,7 @@ class GetTokenBalance(APIView):
 
 class UpdateFCMId(APIView):
 
-	def post(self, request,me_id,format=None):
+	def put(self, request,me_id,format=None):
 		params = request.data
 		fcm_id = params.get('fcm_id',None)
 		if fcm_id:
