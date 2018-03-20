@@ -13,7 +13,7 @@ from firebase_admin import firestore
 from os import path
 from django.conf import settings
 
-app_version = 0.02
+app_version = 0.03
 
 if settings.DEBUG:
     # Do something
