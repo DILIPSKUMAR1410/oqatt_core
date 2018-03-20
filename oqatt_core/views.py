@@ -13,6 +13,8 @@ from firebase_admin import firestore
 from os import path
 from django.conf import settings
 
+app_version = 0.01
+
 if settings.DEBUG:
     # Do something
     cred = credentials.Certificate('/Users/dk/oqatt_core/oqatt-diva-firebase-adminsdk-smc26-4fbe6b846a.json')
@@ -306,7 +308,7 @@ class GetTokenBalance(APIView):
 		user = User.nodes.get_or_none(uid=me_id)
 		if user is None:
 			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
-		return Response({'token_bal':user.token_bal}, status=status.HTTP_200_OK)
+		return Response({'token_bal':user.token_bal,"app_version":app_version}, status=status.HTTP_200_OK)
 
 
 class UpdateFCMId(APIView):
