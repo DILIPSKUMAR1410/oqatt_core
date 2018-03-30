@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from oqatt_core.models import User
-from oqatt_core.tasks import upvote_push,push_poll,updateObjectbox,send_new_user_notification
+from oqatt_core.tasks import upvote_push,push_poll,updateObjectbox,send_new_user_notification,push_thread
 import json
 import logging
 from neomodel.match import INCOMING,Traversal
@@ -363,4 +363,168 @@ class GetFriendsConnections(APIView):
 				unknown.append(User.inflate(result[0]).contact)
 		return Response({'mutual':mutual,'unknown':len(unknown)}, status=status.HTTP_200_OK)
 
+class PublishThread(APIView):
 
+	def post(self, request,me_id, format=None):
+		params = request.data
+		question = params.pop('question',None)
+		passkey = params.pop('passkey',None)
+		sub_contact = params.pop('sub_contact',None)
+		selected_friends = params.pop('selected_friends',None)
+		thread_hash = params.pop('thread_hash',None)
+		user = User.nodes.get_or_none(uid=me_id)
+		if not question or not sub_contact or not thread_hash or not selected_friends or not passkey:
+			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
+		if user is None:
+			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)		
+
+		if user.token_bal < TOKENS_PER_QUESTION:
+			return Response({'Msg':'Not enough tokens'}, status=status.HTTP_200_OK)
+		
+		values = {}
+		result = results2 = results3 = final_results = None
+		fcm_ids = []
+		participant_ids = []
+		if "others" in selected_friends:
+			selected_friends.remove("others")
+			query1 = "MATCH (p:User {contact:{sub_contact}})<-[:Knows]->(all)"\
+				"return distinct all"
+			query2 = "MATCH (me:User {contact:{my_contact}})<-[:Knows]->(mutual)<-[:Knows]->"\
+				+"(sub:User {contact:{sub_contact}})<-[:Knows]->(me)"\
+				+"return  distinct mutual"
+			values['sub_contact'] = sub_contact
+			values['my_contact'] = user.contact
+			result1 = db.cypher_query(query1, values)[0]
+				
+			for result in result1:
+				participant = User.inflate(result[0])
+				if participant.contact == user.contact:pass
+				fcm_ids.append(participant.fcm_id)
+				participant_ids.append(participant.uid) 
+			
+			results2 = db.cypher_query(query2, values)[0]
+			
+			for result in results2:
+				participant = User.inflate(result[0])
+				if participant.contact == user.contact:pass
+				if participant.fcm_id in fcm_ids:fcm_ids.remove(participant.fcm_id)
+				if participant.uid in participant_ids:participant_ids.remove(participant.uid)
+
+		if selected_friends:
+			query3 = "UNWIND {selected_friends} as params"\
+				+" MATCH (n:User {contact: params})"\
+				+"return distinct n"
+			values['selected_friends'] = selected_friends
+			results3 = db.cypher_query(query3, values)[0]
+
+			for result in results3:
+				participant = User.inflate(result[0])
+				if participant.contact == user.contact:pass
+				fcm_ids.append(participant.fcm_id)
+				participant_ids.append(participant.uid)
+
+		if user.fcm_id in fcm_ids:
+			fcm_ids.remove(user.fcm_id)	
+
+		if user.uid in participant_ids:
+			participant_ids.remove(user.uid)	
+
+		participant_ids.append(me_id)
+		
+		doc_ref = firestoredb.collection(u'threads').document(thread_hash)
+		doc_ref.set({
+		    u'participants': participant_ids
+		    })
+		data_message = {
+ 		   "question" : question,
+    	   "thread_hash":thread_hash,
+    	   "sub_contact": sub_contact,
+    	   "type" : 5,
+    	   "passkey":passkey
+    	   }
+		user.token_bal -= TOKENS_PER_QUESTION
+		user.save()
+		push_thread.delay('You received an thread invitation',fcm_ids,data_message=data_message)
+		return Response({'Msg':'Succesfully published','token_bal':user.token_bal}, status=status.HTTP_200_OK)
+
+
+class PublishGroupThread(APIView):
+
+	def post(self, request,me_id, format=None):
+		params = request.data
+		question = params.pop('question',None)
+		passkey = params.pop('passkey',None)
+		selected_friends = params.pop('selected_friends',None)
+		thread_hash = params.pop('thread_hash',None)
+		user = User.nodes.get_or_none(uid=me_id)
+		
+		if not question or not selected_friends or not thread_hash or not passkey:
+			return Response({'msg':"Bad request"}, status=status.HTTP_400_BAD_REQUEST)
+		if user is None:
+			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)		
+
+		if user.token_bal < TOKENS_PER_QUESTION:
+			return Response({'Msg':'Not enough tokens'}, status=status.HTTP_200_OK)
+			
+		query = "UNWIND {selected_friends} as params"\
+				+" MATCH (n:User {contact: params})"\
+				+"return n"
+				# "MATCH (p:User)-[:Knows]->(b)-[:Knows]->(p)"\
+		values = {}
+		values['selected_friends'] = selected_friends
+		results = db.cypher_query(query, values)[0]
+
+		fcm_ids = []
+		participant_ids = []
+		for result in results:
+			participant = User.inflate(result[0])
+			fcm_ids.append(participant.fcm_id)
+			participant_ids.append(participant.uid)
+
+		participant_ids.append(me_id)
+		
+		doc_ref = firestoredb.collection(u'threads').document(thread_hash)
+		doc_ref.set({
+		    u'participants': participant_ids
+		   	})
+		data_message = {
+ 		   "question" : question,
+    	   "thread_hash":thread_hash,
+    	   "type" : 6,
+	       "passkey":passkey
+    	   }
+		user.token_bal -= TOKENS_PER_QUESTION
+		user.save()
+		push_thread.delay('You received an thread invitation',fcm_ids,data_message=data_message)
+		return Response({'Msg':'Succesfully published','token_bal':user.token_bal}, status=status.HTTP_200_OK)
+
+class SendMessage(APIView):
+
+	def post(self, request,me_id, format=None):
+		params = request.data
+		thread_hash = params.pop('thread_hash',None)
+		message = params.pop('message',None)
+		passkey = params.pop('passkey',None)
+
+		user = User.nodes.get_or_none(uid=me_id)
+		if user is None or not message or not passkey or not thread_hash:
+			return Response({'msg':"DoesNotExist"}, status=status.HTTP_400_BAD_REQUEST)
+
+		poll_ref = firestoredb.collection(u'threads').document(thread_hash)
+		poll = poll_ref.get().to_dict()
+		poll['participants'].remove(user.uid)
+		results = User.nodes.filter(uid__in=poll['participants'])
+		
+		fcm_ids = []
+		for result in results:
+			fcm_ids.append(result.fcm_id)
+
+		data_message = {
+    	   "thread_hash": thread_hash,
+       	   "passkey" : passkey,
+       	   "message": message,
+       	   "type" : 7
+    	   }
+
+		push_thread.delay('Message received',fcm_ids,data_message=data_message)
+		return Response({'Msg':'sent'}, status=status.HTTP_200_OK)

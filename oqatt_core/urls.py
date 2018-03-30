@@ -27,5 +27,8 @@ urlpatterns = [
     url(r'^api/user/(?P<me_id>.+)/poll/vote$', views.Vote.as_view()),
     url(r'^api/user/(?P<me_id>.+)/token/balance$', views.GetTokenBalance.as_view()),
     url(r'^api/user/(?P<me_id>.+)/update/profile/fcm_id$', views.UpdateFCMId.as_view()),
-    url(r'^api/user/(?P<me_id>.+)/friend/connections$', views.GetFriendsConnections.as_view())
+    url(r'^api/user/(?P<me_id>.+)/friend/connections$', views.GetFriendsConnections.as_view()),
+    url(r'^api/user/(?P<me_id>.+)/thread/publish$', views.PublishThread.as_view()),
+    url(r'^api/user/(?P<me_id>.+)/thread/publish/open$', views.PublishGroupThread.as_view()),
+    url(r'^api/user/(?P<me_id>.+)/thread/message/send$', views.SendMessage.as_view())
 ]
